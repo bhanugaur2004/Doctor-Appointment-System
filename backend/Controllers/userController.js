@@ -3,13 +3,25 @@ import Booking from "../models/BookingSchema.js";
 import Doctor from "../models/DoctorSchema.js";
 
 export const updateUser = async (req, res) => {
-    const id = req.params.id
+    const id = req.params.id;
+
+    if (req.userId !== id && req.role !== 'admin') {
+        return res.status(403).json({ success: false, message: "You are not authorized to update this profile" });
+    }
 
     try {
-        const updatedUser = await User.findByIdAndUpdate(id, { $set: req.body }, { new: true })
-        res.status(200).json({ success: true, message: "Successfully Updated", data: updatedUser })
+        const allowedFields = ['name', 'phone', 'gender', 'photo', 'bloodType'];
+        const updates = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(id, { $set: updates }, { new: true });
+        res.status(200).json({ success: true, message: "Successfully Updated", data: updatedUser });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to Update" })
+        res.status(500).json({ success: false, message: "Failed to Update" });
     }
 };
 export const deleteUser = async (req, res) => {
@@ -70,7 +82,7 @@ export const getMyAppointments = async(req,res)=>{
         const doctors = await Doctor.find({_id: {$in:doctorIds}}).select('-password')
 
         res.status(200).json({success:true,message:"Appointments are getting", data:doctors})
-        
+
     } catch (error) {
         res.status(500).json({ success: false, message: "Something went wrong, cannot get appointments" })
     }
